@@ -117,6 +117,20 @@ classdef RecurrentLayer < OperateLayer
             end
             grad_input = obj.grad_input;
         end
+        
+        function update(obj,apply,option)
+            if nargin <= 2
+                option = struct();
+            end
+            obj.W.context = apply(obj.W.context,obj.grad_W.context,option);
+            obj.W_T.context = apply(obj.W_T.context,obj.grad_W_T.context,option);
+            obj.B.context = apply(obj.B.context,obj.grad_B.context,option);
+            
+            obj.grad_W.setZeros();
+            obj.grad_W_T.setZeros();
+            obj.grad_B.setZeros();
+        end
+
         %% the functions below this line are used in the above ones or some are just defined for the gradient check;
         function checkGrad(obj)
             seqLen = 10;

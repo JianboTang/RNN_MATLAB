@@ -30,5 +30,6 @@ for i = 1 : MaxIter
     loss.update(@SGD);
     rec2.update(@SGD);
     rec1.update(@SGD);
+    embedd1.update(@SGD);
     toc;
 end

@@ -14,17 +14,22 @@ classdef EmbeddingLayer < OperateLayer
         
         function [output,length] = fprop(obj,input,length)
             obj.length = length;
+            obj.batch_size = size(input{1,1},2);
             for i = 1 : obj.length
                 obj.input{1,i} = input{1,i};
                 obj.input{2,i} = input{2,i};
-                obj.output{1,i} = obj.W.context(:,input{1,i});
+                obj.output{1,i} = obj.W.context(:,obj.input{1,i});
                 obj.output{2,i} = input{2,i};% mask
             end
             output = obj.output;
+            if obj.debug
+                display(['EmbeddingLayer | W | mean : ',num2str(mean(obj.W.context(:))),' | std : ',num2str(std(obj.W.context(:)))]);
+            end
         end
         
         function output = fprop_step(obj,input,i)
             obj.length = i;
+            obj.batch_size = size(input{1,1},2);
             obj.input{1,i} = input{1,1};
             obj.input{2,i} = input{2,1};
             obj.output{1,i} = obj.W.context(:,input{1,1});
@@ -34,10 +39,27 @@ classdef EmbeddingLayer < OperateLayer
         end
         
         function bprop(obj,grad_output)
-            obj.grad_input = grad_output;
+            for i = 1 : obj.length
+                temp = grad_output{1,i};
+                temp_mask = obj.input{2,i};
+                index = obj.input{1,i};
+                for j = 1 : obj.batch_size
+                    if temp_mask(1,j) == 1
+                        obj.grad_W.context(:,index(1,j)) = obj.grad_W.context(:,index(1,j)) + temp(:,j) ./ obj.batch_size;
+                    end
+                end
+            end
+            if obj.debug
+                display(['EmbeddingLayer | grad_W | mean : ',num2str(mean(obj.grad_W.context(:))),' | std : ',num2str(std(obj.grad_W.context(:)))]);
+            end
         end
         
         function update(obj,apply,option)
+            if nargin <= 2
+                option = struct();
+            end
+            obj.W.context = apply(obj.W.context,obj.grad_W.context,option);
+            obj.grad_W.setZeros();
         end
     end
 end

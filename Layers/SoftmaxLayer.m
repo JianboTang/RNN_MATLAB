@@ -24,6 +24,9 @@ classdef SoftmaxLayer < OperateLayer
                 obj.output{1,i} = bsxfun(@times,obj.output{1,i},obj.output{2,i});
             end
             output = obj.output;
+            if obj.debug
+                display(['SoftmaxLayer | W | mean : ',num2str(mean(obj.W.context(:))),' | std : ',num2str(std(obj.W.context(:)))]);
+            end
         end
         
         function output = fprop_step(obj,input,i)
@@ -63,7 +66,21 @@ classdef SoftmaxLayer < OperateLayer
                 obj.grad_B.context = obj.grad_B.context + mean(obj.grad_output{1,i},2);
             end
             grad_input = obj.grad_input;
+            if obj.debug
+                display(['SoftmaxLayer | grad_W | mean : ',num2str(mean(obj.grad_W.context(:))),' | std : ',num2str(std(obj.grad_W.context(:)))]);
+            end
         end
+        
+        function update(obj,apply,option)
+            if nargin <= 2
+                option = struct();
+            end
+            obj.W.context = apply(obj.W.context,obj.grad_W.context,option);
+            obj.B.context = apply(obj.B.context,obj.grad_B.context,option);
+            obj.grad_W.setZeros();
+            obj.grad_B.setZeros();
+        end
+
         %% the functions below this line are used in the above functions or some functions are just defined for the gradient check;
         function checkGrad(obj)
             seqLen = 20;
