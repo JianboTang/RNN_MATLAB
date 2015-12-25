@@ -314,44 +314,6 @@ classdef LstmLayer < OperateLayer
         end
         
         function grad_input = bprop(obj,grad_output)
-            % forget dividing batchSize,it will cost a lot more than no
-            % dividing,due to the existence of mask.instead, divide the learning rate will cost much
-            % less
-%             obj.init.setDataSize([obj.hidden_dim,obj.batch_size]);
-%             obj.init.setZeros();
-%             if isempty(obj.grad_output)
-%                 obj.grad_output = cell([1,obj.length]);
-%             end
-%             if isempty(obj.grad_states)
-%                 obj.grad_states = cell([1,obj.length]); 
-%             end
-%             for i = 1 : obj.length
-%                 if isempty(obj.grad_output{1,i})
-%                     obj.grad_output{1,i} = obj.init.context;
-%                 end
-%                 if isempty(obj.grad_states{1,i})
-%                     obj.grad_states{1,i} = obj.init.context;
-%                 end
-%             end
-%             if nargin >= 2
-%                 for i = 1 : obj.length
-%                     obj.grad_output{1,i} = obj.grad_output{1,i} + grad_output{1,i};
-%                 end
-%             end
-
-%             if isempty(obj.grad_init_output)
-%                 obj.init.setDataSize([obj.hidden_dim,obj.batch_size]);
-%                 obj.init.setZeros();
-%                 obj.grad_init_output{1,1} = obj.init.context;
-%                 obj.init.clearData();
-%             end
-%             if isempty(obj.grad_init_state)
-%                 obj.init.setDataSize([obj.hidden_dim,obj.batch_size]);
-%                 obj.init.setZeros();
-%                 obj.grad_init_state{1,1} = obj.init.context;
-%                 obj.init.clearData();
-%             end
-            
             for i = obj.length : -1 : 1
                 obj.grad_output{1,i} = grad_output{1,i};
                 if i == obj.length
@@ -508,6 +470,74 @@ classdef LstmLayer < OperateLayer
             obj.grad_B_c.setZeros();
             obj.grad_B_w.setZeros();
         end 
+        
+        function object = saveObj(obj)
+            object = struct();
+            if obj.W_il.useGPU
+                object.W_il = gather(obj.W_il.context);
+                object.W_hl = gather(obj.W_hl.context);
+                object.W_cl = gather(obj.W_cl.context);
+                object.W_cf = gather(obj.W_cf.context);
+                object.W_hf = gather(obj.W_hf.context);
+                object.W_if = gather(obj.W_if.context);
+                object.W_hc = gather(obj.W_hc.context);
+                object.W_ic = gather(obj.W_ic.context);
+                object.W_cw = gather(obj.W_cw.context);
+                object.W_hw = gather(obj.W_hw.context);
+                object.W_iw = gather(obj.W_iw.context);
+                object.B_l = gather(obj.B_l.context);
+                object.B_f = gather(obj.B_f.context);
+                object.B_c = gather(obj.B_c.context);
+                object.B_w = gather(obj.B_w.context);
+            else
+                object.W_il = obj.W_il.context;
+                object.W_hl = obj.W_hl.context;
+                object.W_cl = obj.W_cl.context;
+                object.W_cf = obj.W_cf.context;
+                object.W_hf = obj.W_hf.context;
+                object.W_if = obj.W_if.context;
+                object.W_hc = obj.W_hc.context;
+                object.W_ic = obj.W_ic.context;
+                object.W_cw = obj.W_cw.context;
+                object.W_hw = obj.W_hw.context;
+                object.W_iw = obj.W_iw.context;
+                object.B_l = obj.B_l.context;
+                object.B_f = obj.B_f.context;
+                object.B_c = obj.B_c.context;
+                object.B_w = obj.B_w.context;
+            end
+            object.gate_activation = obj.gate_activation;
+            object.gate_diff_activ = obj.gate_diff_activ;
+            object.cell_activation = obj.cell_activation;
+            object.cell_diff_activ = obj.cell_diff_activ;
+            object.activation = obj.activation;
+            object.diff_activ = obj.diff_activ;
+        end
+        
+        function loadObj(obj,object)
+            obj.W_il.context = obj.init.dataConvert(object.W_il);
+            obj.W_hl.context = obj.init.dataConvert(object.W_hl);
+            obj.W_cl.context = obj.init.dataConvert(object.W_cl);
+            obj.W_cf.context = obj.init.dataConvert(object.W_cf);
+            obj.W_hf.context = obj.init.dataConvert(object.W_hf);
+            obj.W_if.context = obj.init.dataConvert(object.W_if);
+            obj.W_hc.context = obj.init.dataConvert(object.W_hc);
+            obj.W_ic.context = obj.init.dataConvert(object.W_ic);
+            obj.W_cw.context = obj.init.dataConvert(object.W_cw);
+            obj.W_hw.context = obj.init.dataConvert(object.W_hw);
+            obj.W_iw.context = obj.init.dataConvert(object.W_iw);
+            obj.B_l.context = obj.init.dataConvert(object.B_l);
+            obj.B_f.context = obj.init.dataConvert(object.B_f);
+            obj.B_c.context = obj.init.dataConvert(object.B_c);
+            obj.B_w.context = obj.init.dataConvert(object.B_w);
+            
+            obj.gate_activation = object.gate_activation;
+            obj.gate_diff_activ = object.gate_diff_activ;
+            obj.cell_activation = object.cell_activation;
+            obj.cell_diff_activ = object.cell_diff_activ;
+            obj.activation = object.activation;
+            obj.diff_activ = object.diff_activ;
+        end
         %% the functions below this line are used in the above functions or some functions are just defined for the gradient check;
         function checkGrad(obj)
             % prepare the data 

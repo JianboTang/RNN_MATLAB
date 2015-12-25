@@ -130,7 +130,29 @@ classdef RecurrentLayer < OperateLayer
             obj.grad_W_T.setZeros();
             obj.grad_B.setZeros();
         end
-
+        
+        function object = saveObj(obj)
+            if obj.W.useGPU
+                object.W = gather(obj.W.context);
+                object.W_T = gather(obj.W_T.context);
+                object.B = gather(obj.B.context);
+            else
+                object.W = obj.W.context;
+                object.W_T = obj.W_T.context;
+                object.B = obj.B.context;
+            end
+            
+            object.activation = obj.activation;
+            object.diff_activ = obj.diff_activ;
+        end
+        
+        function loadObj(obj,object)
+            obj.W.context = obj.init.dataConvert(object.W);
+            obj.B.context = obj.init.dataConvert(object.B);
+            obj.W_T.context = obj.init.dataConvert(object.W_T);
+            obj.activation = object.activaiton;
+            obj.diff_activ = object.diff_activ;
+        end
         %% the functions below this line are used in the above ones or some are just defined for the gradient check;
         function checkGrad(obj)
             seqLen = 10;

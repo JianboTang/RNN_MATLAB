@@ -61,5 +61,25 @@ classdef EmbeddingLayer < OperateLayer
             obj.W.context = apply(obj.W.context,obj.grad_W.context,option);
             obj.grad_W.setZeros();
         end
+        
+        function object = saveObj(obj)
+            if obj.W.useGPU
+                object.W = gather(obj.W.context);
+                object.B = gather(obj.B.context);
+            else
+                object.W = obj.W.context;
+                object.B = obj.B.context;
+            end
+            
+            object.activation = obj.activation;
+            object.diff_activ = obj.diff_activ;
+        end
+        
+        function loadObj(obj,object)
+            obj.W.context = obj.init.dataConvert(object.W);
+            obj.B.context = obj.init.dataConvert(object.B);
+            obj.activation = object.activaiton;
+            obj.diff_activ = object.diff_activ;
+        end
     end
 end
