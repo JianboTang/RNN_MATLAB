@@ -50,6 +50,8 @@ classdef LstmLayer < OperateLayer
         init_state
         grad_init_output
         grad_init_state
+        output_state
+        grad_output_state
     end
     methods 
         function obj = LstmLayer(option)
@@ -226,6 +228,8 @@ classdef LstmLayer < OperateLayer
                 obj.output{1,i} = bsxfun(@times,obj.output{1,i},obj.input{2,i});
                 obj.output{2,i} = obj.input{2,i};
             end
+            obj.output_state{1,1} = obj.states{1,obj.length};
+            obj.output_state{2,1} = obj.output{2,obj.length};
             output = obj.output;
             if obj.debug
                 display(['LstmLayer | W_il | mean : ',num2str(mean(obj.W_il.context(:))),' | std : ',num2str(std(obj.W_il.context(:)))]);
@@ -305,6 +309,7 @@ classdef LstmLayer < OperateLayer
                     obj.W_hw.context * obj.output{1,i - 1} + obj.W_cw.context * obj.states{1,i},obj.B_w.context));
                 obj.output_gates{1,i} = bsxfun(@times,obj.output_gates{1,i},obj.input{2,i});
             end
+            obj.output_state{1,1} = obj.state{1,obj.length};
             obj.output{1,i} = obj.output_gates{1,i} .* obj.activation(obj.states{1,i});
             obj.output{1,i} = bsxfun(@times,obj.output{1,i},obj.input{2,i});
             obj.output{2,i} = obj.input{2,i};
@@ -314,13 +319,18 @@ classdef LstmLayer < OperateLayer
         end
         
         function grad_input = bprop(obj,grad_output)
+            if isempty(obj.grad_output_state)
+                obj.init.setDataSize([obj.hidden_dim,obj.batch_size]);
+                obj.init.setZeros();
+                obj.grad_output_state{1,1} = obj.init.context;
+            end
             for i = obj.length : -1 : 1
                 obj.grad_output{1,i} = grad_output{1,i};
                 if i == obj.length
                     obj.grad_output{1,i} = bsxfun(@times,obj.grad_output{1,i},obj.output{2,i});
                     obj.grad_output_gates{1,i} = obj.gate_diff_activ(obj.output_gates{1,i}) .* obj.activation(obj.states{1,i}) .* obj.grad_output{1,i};
                     obj.grad_output_gates{1,i} = bsxfun(@times,obj.grad_output_gates{1,i},obj.output{2,i});
-                    obj.grad_states{1,i} = obj.output_gates{1,i} .* obj.diff_activ(obj.activation(obj.states{1,i})) .* ...
+                    obj.grad_states{1,i} = obj.grad_output_state{1,1} + obj.output_gates{1,i} .* obj.diff_activ(obj.activation(obj.states{1,i})) .* ...
                         obj.grad_output{1,i} + obj.W_cw.context' * obj.grad_output_gates{1,i};% obj.grad_states{1,i} + 
                     obj.grad_states{1,i} = bsxfun(@times,obj.grad_states{1,i},obj.output{2,i});
                     obj.grad_cells{1,i} = obj.input_gates{1,i} .* obj.cell_diff_activ(obj.cells{1,i}) .* obj.grad_states{1,i};
