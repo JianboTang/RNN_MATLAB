@@ -32,16 +32,6 @@ classdef OperateLayer < handle
             end
         end
         
-%         function input_initialize(obj)
-%             obj.input = cell([2,obj.length]);
-%             obj.output = cell([2,obj.length]);
-%         end
-        
-%         function grad_initialize(obj)
-%             obj.grad_input = cell([1,obj.length]);
-%             obj.grad_output = cell([1,obj.length]);
-%         end
-        
 %         function update(obj,apply,option)
 %             if nargin <= 2
 %                 option = struct();

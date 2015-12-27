@@ -6,21 +6,28 @@ classdef textData < handle
         index = [];
     end
     methods
-        function td = textData(txtfile,dictionary)
+        function obj = textData(txtfile,dictionary)
             if nargin == 0
-                td.data = textread(td.txtfile);
-                td.index = textread(td.dictionary,'%s');
+                if exist(obj.txtfile,'file')
+                    obj.data = textread(obj.txtfile);
+                end
+                
+                if exist(obj.dictionary,'file')
+                    obj.index = textread(obj.dictionary,'%s');
+                end
             else if nargin >= 1
-                    td.data = textread(txtfile);
-                    td.txtfile = txtfile;
+                    if exist(txtfile,'file')
+                        obj.data = textread(txtfile);
+                        obj.txtfile = txtfile;
+                    end
                     if nargin >= 2
-                        td.dictionary = dictionary;
-                        td.index = textread(td.dictionary,'%s');
+                        if exist(dictionary,'file')
+                            obj.dictionary = dictionary;
+                            obj.index = textread(obj.dictionary,'%s');
+                        end
                     end
                 end
             end
         end
     end
 end
-% function readTxtData()
-% end
