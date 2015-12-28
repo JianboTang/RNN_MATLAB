@@ -38,7 +38,10 @@ classdef EmbeddingLayer < OperateLayer
             output{2,1} = obj.output{2,i};
         end
         
-        function bprop(obj,grad_output)
+        function bprop(obj,grad_output,length)
+            if nargin >= 3
+                obj.length = length;
+            end
             for i = 1 : obj.length
                 temp = grad_output{1,i};
                 temp_mask = obj.input{2,i};

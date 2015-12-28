@@ -318,7 +318,10 @@ classdef LstmLayer < OperateLayer
             output{2,1} = obj.output{2,i};
         end
         
-        function grad_input = bprop(obj,grad_output)
+        function grad_input = bprop(obj,grad_output,length)
+            if nargin >= 3
+                obj.length = length;
+            end
             if isempty(obj.grad_output_state)
                 obj.init.setDataSize([obj.hidden_dim,obj.batch_size]);
                 obj.init.setZeros();
