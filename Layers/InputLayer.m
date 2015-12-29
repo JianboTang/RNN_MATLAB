@@ -4,7 +4,6 @@ classdef InputLayer < handle
         output
         base_point = 1
         batchSize
-        mask = false
         convert = Data();
         vocabSize
         vocab
@@ -87,14 +86,9 @@ classdef InputLayer < handle
             
             prune_data(prune_data == 0) = 1;
             
-            obj.output = cell(2,size(prune_data,2));
+            obj.output = cell(1,size(prune_data,2));
             for i = 1 : size(prune_data,2)
                 obj.output{1,i} = obj.convert.dataConvert(prune_data(:,i)');
-                if obj.mask
-                    obj.output{2,i} = obj.convert.dataConvert(prune_data(:,i)' > 1);
-                else
-                    obj.output{2,i} = obj.convert.dataConvert(ones(size(prune_data(:,i)')));
-                end
             end
             
             if option.fprop
@@ -108,10 +102,6 @@ classdef InputLayer < handle
         function initialOption(obj,option)
             if isfield(option,'batchSize')
                 obj.batchSize = option.batchSize;
-            end
-            
-            if isfield(option,'mask')
-                obj.mask = option.mask;
             end
             
             if isfield(option,'base_point')

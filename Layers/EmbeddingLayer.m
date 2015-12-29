@@ -17,9 +17,7 @@ classdef EmbeddingLayer < OperateLayer
             obj.batch_size = size(input{1,1},2);
             for i = 1 : obj.length
                 obj.input{1,i} = input{1,i};
-                obj.input{2,i} = input{2,i};
                 obj.output{1,i} = obj.W.context(:,obj.input{1,i});
-                obj.output{2,i} = input{2,i};% mask
             end
             output = obj.output;
             if obj.debug
@@ -31,11 +29,8 @@ classdef EmbeddingLayer < OperateLayer
             obj.length = i;
             obj.batch_size = size(input{1,1},2);
             obj.input{1,i} = input{1,1};
-            obj.input{2,i} = input{2,1};
             obj.output{1,i} = obj.W.context(:,input{1,1});
-            obj.output{2,i} = obj.input{2,1};% mask
             output{1,1} = obj.output{1,i};
-            output{2,1} = obj.output{2,i};
         end
         
         function bprop(obj,grad_output,length)
@@ -44,12 +39,9 @@ classdef EmbeddingLayer < OperateLayer
             end
             for i = 1 : obj.length
                 temp = grad_output{1,i};
-                temp_mask = obj.input{2,i};
                 index = obj.input{1,i};
                 for j = 1 : obj.batch_size
-                    if temp_mask(1,j) == 1
-                        obj.grad_W.context(:,index(1,j)) = obj.grad_W.context(:,index(1,j)) + temp(:,j) ./ obj.batch_size;
-                    end
+                    obj.grad_W.context(:,index(1,j)) = obj.grad_W.context(:,index(1,j)) + temp(:,j) ./ obj.batch_size;
                 end
             end
             if obj.debug

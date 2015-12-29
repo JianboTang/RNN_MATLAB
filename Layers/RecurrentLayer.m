@@ -43,20 +43,14 @@ classdef RecurrentLayer < OperateLayer
                 obj.init.setZeros();
                 obj.init_output{1,1} = obj.init.context;
                 obj.init.clearData();
-                obj.init.setDataSize([1,obj.batch_size]);
-                obj.init.setOnes();
-                obj.init_output{2,1} = obj.init.context;
             end
             for i  = 1 : size(input,2)
                 obj.input{1,i} = input{1,i};
-                obj.input{2,i} = input{2,i};
                 if i == 1
                     obj.output{1,i} = obj.activation(bsxfun(@plus,obj.W.context * obj.input{1,i} + obj.W_T.context * obj.init_output{1,1},obj.B.context));
                 else
                     obj.output{1,i} = obj.activation(bsxfun(@plus,obj.W.context * obj.input{1,i} + obj.W_T.context * obj.output{1,i - 1},obj.B.context));
                 end
-                obj.output{1,i} = bsxfun(@times,obj.output{1,i},obj.input{2,i});
-                obj.output{2,i} = obj.input{2,i};
             end
             output = obj.output;
         end
@@ -74,19 +68,13 @@ classdef RecurrentLayer < OperateLayer
                 obj.init.setZeros();
                 obj.init_output{1,1} = obj.init.context;
                 obj.init.clearData();
-                obj.init.setDataSize([1,obj.batch_size]);
-                obj.init.setOnes();
-                obj.init_output{2,1} = obj.init.context;
             end
             if i == 1
                 obj.output{1,i} = obj.activation(bsxfun(@plus,obj.W.context * input{1,1} + obj.W_T.context * obj.init_output{1,1},obj.B.context));
             else
                 obj.output{1,i} = obj.activation(bsxfun(@plus,obj.W.context * input{1,1} + obj.W_T.context * obj.output{1,i - 1},obj.B.context));
             end
-            obj.output{1,i} = bsxfun(@times,obj.output{1,i},input{2,1});
-            obj.output{2,i} = input{2,1};
             output{1,1} = obj.output{1,i};
-            output{2,1} = obj.output{2,i};
         end
         
         function initialOption(obj,option)
@@ -95,24 +83,22 @@ classdef RecurrentLayer < OperateLayer
         
         function grad_input = bprop(obj,grad_output)
             for i = obj.length : -1 : 1
-                grad_output{1,i} = bsxfun(@times,grad_output{1,i},obj.output{2,i});
                 obj.grad_output{1,i} = grad_output{1,i};
                 if i == size(obj.grad_output,2)
                     obj.grad_input{1,i} = obj.grad_output{1,i} .* obj.diff_activ(obj.output{1,i});
                 else
                     obj.grad_input{1,i} = (obj.grad_output{1,i} + obj.W_T.context' * obj.grad_input{1,i + 1}) .* obj.diff_activ(obj.output{1,i});
                 end
-                obj.grad_input{1,i} = bsxfun(@times,obj.grad_input{1,i},obj.output{2,i});
                 if i > 1
-                    obj.grad_W_T.context = obj.grad_W_T.context + obj.grad_input{1,i} * (obj.output{1,i - 1})' ./ (obj.output{2,i} * (obj.output{2,i - 1})');
+                    obj.grad_W_T.context = obj.grad_W_T.context + obj.grad_input{1,i} * (obj.output{1,i - 1})' ./ obj.batch_size;
                 else
-                    obj.grad_W_T.context = obj.grad_W_T.context + obj.grad_input{1,i} * (obj.init_output{1,1})' ./ (obj.output{2,i} * obj.init_output{2,1}');
+                    obj.grad_W_T.context = obj.grad_W_T.context + obj.grad_input{1,i} * (obj.init_output{1,1})' ./ obj.batch_size;
                 end
             end
             obj.grad_init_output{1,1} = obj.W_T.context' * obj.grad_input{1,1};
             for i = 1 : size(obj.grad_input,2)
-                obj.grad_B.context = obj.grad_B.context + sum(obj.grad_input{1,i},2) ./ sum(obj.output{2,i},2);
-                obj.grad_W.context = obj.grad_W.context + obj.grad_input{1,i} * (obj.input{1,i})' ./ sum(obj.output{2,i},2);
+                obj.grad_B.context = obj.grad_B.context + sum(obj.grad_input{1,i},2) ./ obj.batch_size;
+                obj.grad_W.context = obj.grad_W.context + obj.grad_input{1,i} * (obj.input{1,i})' ./ obj.batch_size;
                 obj.grad_input{1,i} = obj.W.context' * obj.grad_input{1,i};
             end
             grad_input = obj.grad_input;
@@ -157,21 +143,11 @@ classdef RecurrentLayer < OperateLayer
         function checkGrad(obj)
             seqLen = 10;
             batchSize = 20;
-            input = cell([2,seqLen]);
+            input = cell([1,seqLen]);
             target = cell([1,seqLen]);
-            mask = ones(seqLen,batchSize);
-            truncate = randi(seqLen - 1,1,batchSize);
-            for i = 1 : batchSize - 1
-                mask( 1 : truncate(1,i),i) = 1;
-                % if you want to check the gradient with mask ,replace the
-                % sentence above with mask( 1 : truncate(1,i),i) = 0; most
-                % often it fails.
-            end
-            mask(:,batchSize) = 1;
             for i = 1 : seqLen
-                input{2,i} = mask(i,:);
-                input{1,i} = bsxfun(@times,randn([obj.input_dim,batchSize]),mask(i,:));
-                target{1,i} = bsxfun(@times,randn([obj.hidden_dim,batchSize]),mask(i,:));
+                input{1,i} = randn([obj.input_dim,batchSize]);
+                target{1,i} = randn([obj.hidden_dim,batchSize]);
             end
             epislon = 10 ^ (-6);
             
@@ -182,7 +158,7 @@ classdef RecurrentLayer < OperateLayer
             obj.fprop(input,size(input,2));
             grad_output = cell([1,size(obj.output,2)]);
             for i = 1 : size(obj.output,2)
-                grad_output{1,i} = bsxfun(@times,2 * (obj.output{1,i} - target{1,i}),obj.output{2,i});
+                grad_output{1,i} = 2 * (obj.output{1,i} - target{1,i});
             end
             obj.bprop(grad_output);
             
@@ -294,9 +270,6 @@ classdef RecurrentLayer < OperateLayer
                 temp = input{1,t};
                 for i = 1 : size(temp,1)
                     for j = 1 : size(temp,2)
-                        if input{2,t}(1,j) == 0
-                            continue;
-                        end
                         temp_input = input;
                         temp = temp_input{1,t};
                         temp(i,j) = temp(i,j) + epislon;
@@ -327,7 +300,6 @@ function cost = getCost(target,output)
     cost = 0;
     for m = 1 : size(target,2)
         temp = (target{1,m} - output{1,m}) .^ 2;
-        temp = bsxfun(@times,temp,output{2,m});
-        cost = cost + sum(temp(:)) ./ sum(output{2,m},2);
+        cost = cost + sum(temp(:)) ./ size(temp,2);
     end
 end
