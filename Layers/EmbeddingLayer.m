@@ -81,7 +81,7 @@ classdef EmbeddingLayer < OperateLayer
         function loadObj(obj,object)
             obj.W.context = obj.init.dataConvert(object.W);
             obj.B.context = obj.init.dataConvert(object.B);
-            obj.activation = object.activaiton;
+            obj.activation = object.activation;
             obj.diff_activ = object.diff_activ;
         end
     end
