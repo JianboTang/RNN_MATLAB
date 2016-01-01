@@ -32,7 +32,6 @@ classdef SoftmaxLayer < OperateLayer
             obj.output{1,i} = bsxfun(@plus,obj.W.context * obj.input{1,i},obj.B.context);
             obj.output{1,i} = exp(bsxfun(@minus,obj.output{1,i},max(obj.output{1,i},[],1)));
             obj.output{1,i} = bsxfun(@rdivide,obj.output{1,i},sum(obj.output{1,i},1));
-            obj.output{1,i} = bsxfun(@times,obj.output{1,i},obj.output{2,i});
             output{1,1} = obj.output{1,i};
         end
         
