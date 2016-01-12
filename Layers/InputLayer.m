@@ -3,11 +3,13 @@ classdef InputLayer < handle
         txt = textData('../Data/Text/test_small.txt','../Data/Text/dictionary');
         output
         base_point = 1
+        permute = false
         batchSize
         convert = Data();
         vocabSize
         vocab
         used_index
+        permutation
     end
     methods
         function obj = InputLayer(option)
@@ -35,9 +37,6 @@ classdef InputLayer < handle
         function [output,length] = fprop(obj,option)
             if nargin <= 1
                 option = struct();
-                option.reverse = false;
-                option.fprop = true;
-                option.rightAlig = false;
             end
             
             if ~isfield(option,'reverse')
@@ -51,16 +50,24 @@ classdef InputLayer < handle
             if ~isfield(option,'rightAlig')
                 option.rightAlig = false;
             end
+
+            
+            if isempty(obj.txt.data)
+                error('you should appoint the txtfile of txt first');
+            end
             
             if isempty(obj.batchSize)
-                if isempty(obj.txt.data)
-                    error('you should appoint the txtfile of txt first');
-                end
                 obj.batchSize = size(obj.txt.data,1);
             end
             
             index = obj.base_point : obj.base_point + obj.batchSize  -  1;
             obj.used_index = mod(index - 1,size(obj.txt.data,1)) + 1;
+            if obj.permute
+                if isempty(obj.permutation)
+                    error('you should specify the permutation first !');
+                end
+                obj.used_index = obj.permutation(obj.used_index);
+            end
             prune_data = obj.txt.data(obj.used_index,:);
             mark = sum(prune_data,1) > 0;
             prune_data = prune_data(:,1 : sum(mark));
@@ -106,6 +113,10 @@ classdef InputLayer < handle
             
             if isfield(option,'base_point')
                 obj.base_point = option.base_point;
+            end            
+            
+            if isfield(option,'permute')
+                obj.permute = option.permute;
             end
         end
     end

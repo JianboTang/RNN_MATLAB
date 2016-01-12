@@ -45,6 +45,16 @@ classdef SoftmaxLayer < OperateLayer
             end
         end
         
+        function accuracy = getAccuracy(obj,target)
+            temp_accuracy = zeros(1,obj.length);
+            for i = 1 : obj.length
+                temp_output = obj.output{1,i};
+                [~,max_index] = max(temp_output,[],1);
+                temp_accuracy(1,i) = sum(max_index == target{1,i}) ./ size(temp_output,2);
+            end
+            accuracy = mean(temp_accuracy);
+        end
+        
         function grad_input = bprop(obj,target)
             for i = 1 : obj.length
                 temp_target = target{1,i};
