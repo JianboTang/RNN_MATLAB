@@ -47,6 +47,9 @@ classdef SoftmaxLayer < OperateLayer
         
         function accuracy = getAccuracy(obj,target)
             temp_accuracy = zeros(1,obj.length);
+            if obj.W.useGPU
+                temp_accuracy = gpuArray(temp_accuracy);
+            end
             for i = 1 : obj.length
                 temp_output = obj.output{1,i};
                 [~,max_index] = max(temp_output,[],1);

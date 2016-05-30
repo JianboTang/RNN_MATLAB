@@ -1,11 +1,11 @@
 clc;
 clear;
 close all;
-% dbstop if error;
+dbstop if error;
 setup;
 %% setting definition
 
-gpuDevice(4);
+gpuDevice(1);
 
 useGPU = true;
 dataType = 'single';
@@ -17,10 +17,10 @@ convert = Data(struct('useGPU',useGPU,'dataType',dataType));
 
 %% layer definition
 post = InputLayer(struct('batchSize',batchSize,'useGPU',useGPU,'dataType',dataType,'backward',backward,'debug',debug,'permute',permute));
-post.getFile('../data/used/post_index.txt','../data/used/dictionary.txt');
+post.getFile('../Data/used/post_index.txt','../Data/used/dictionary.txt');
 
 cmnt = InputLayer(struct('batchSize',batchSize,'useGPU',useGPU,'dataType',dataType,'backward',backward,'debug',debug,'permute',permute));
-cmnt.getFile('../data/used/cmnt_index.txt','../data/used/dictionary.txt');
+cmnt.getFile('../Data/used/cmnt_index.txt','../Data/used/dictionary.txt');
 
 embedd1 = EmbeddingLayer(struct('hidden_dim',620,'input_dim',post.vocabSize,'useGPU',useGPU,'dataType',dataType, ...
     'backward',backward,'debug',debug));
@@ -31,6 +31,7 @@ decoder = LstmLayer(struct('hidden_dim',500,'input_dim',620,'useGPU',useGPU,'dat
 loss = SoftmaxLayer(struct('hidden_dim',post.vocabSize,'input_dim',500,'useGPU',useGPU,'dataType',dataType, ...
     'backward',backward,'debug',debug));
 
+%% load parameter
 if exist('encoder_decoder.mat','file')
     load('encoder_decoder.mat');
     embedd1.loadObj(layers{1,1});
@@ -41,8 +42,8 @@ end
 
 %% train
 MaxIter = 100000;
-history_cost = zeros(1,MaxIter);
-history_accuracy = zeros(1,MaxIter);
+history_cost = zeros(1,MaxIter,dataType);
+history_accuracy = zeros(1,MaxIter,dataType);
 context = cell([1,1]);
 
 front_add = cell([1,1]);
@@ -87,7 +88,11 @@ for i = 1 : MaxIter
     loss.fprop(decoder.output,size(front_add,2));
     display(['the length of decode output : ',num2str(size(loss.output,2))]);
     history_cost(1,i) = gather(loss.getCost(backe_add));
-    history_accuracy(1,i) = gather(loss.getAccuracy(backe_add));
+    if useGPU
+        history_accuracy(1,i) = gather(loss.getAccuracy(backe_add));
+    else
+        history_accuracy(1,i) = loss.getAccuracy(backe_add);
+    end
     % show cost
     display(['iteration : ',num2str(i)]);
     display(['cost      : ',num2str(history_cost(1,i))]);
@@ -111,7 +116,8 @@ for i = 1 : MaxIter
     decoder.update(@SGD);
     loss.update(@SGD);
     toc;
-
+    
+    %% save parameter
     if mod(i,100) == 1
         display(' ## ## ## ## ## ## ## ## ');
         layers{1,1} = embedd1.saveObj();
