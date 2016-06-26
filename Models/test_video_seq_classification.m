@@ -16,12 +16,11 @@ convert = Data(option);
 
 temp = traindata{1,1};
 temp_label = trainlabel{1,1};
-TrainData = cell([2,size(temp,2)]);
+TrainData = cell([1,size(temp,2)]);
 TrainLabel = cell([1,size(temp_label,2)]);
 for i = 1  : size(temp,2)
     % ?????
     TrainData{1,i} = convert.dataConvert(temp(:,i));
-    TrainData{2,i} = convert.dataConvert(1);
 end
 TrainLabel{1,1} = convert.dataConvert(trainlabel{1,1});
 
@@ -32,14 +31,13 @@ loss = SoftmaxLayer(struct('hidden_dim',7,'input_dim',50,'useGPU',useGPU,'dataTy
 
 MaxIter = 10000;
 history_cost = zeros(1,MaxIter);
-lstm_output = cell([2,1]);
+lstm_output = cell([1,1]);
 for i = 1 : MaxIter
     tic;
     % ????
     rec1.fprop(TrainData,size(TrainData,2));
     rec2.fprop(rec1.output,size(TrainData,2));
     lstm_output{1,1} = rec2.output{1,size(TrainData,2)};
-    lstm_output{2,1} = rec2.output{2,size(TrainData,2)};
     loss.fprop(lstm_output,size(lstm_output,2));
     history_cost(1,i) = gather(loss.getCost(TrainLabel));
     display(' == == == == == == == == == == == == == == == ');
